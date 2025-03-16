@@ -29,8 +29,8 @@ def train(rank, world_size):
     torch.cuda.set_device(local_rank)
 
     # Global batch size, gradient accumulation steps, per-GPU batch size setup
-    global_batch_size = 1800
-    grad_accum_steps = 5
+    global_batch_size = 1440
+    grad_accum_steps = 4
     micro_batch_size = global_batch_size // (grad_accum_steps * world_size)
 
     # Load ViT-Huge
