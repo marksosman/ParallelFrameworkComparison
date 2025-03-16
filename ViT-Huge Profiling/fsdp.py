@@ -84,15 +84,6 @@ def train(rank, world_size):
     profiler_summary_path = os.path.join(profiler_dir, "rank0_summary.txt")
     profiler_trace_path = os.path.join(profiler_dir, "rank0_trace.json")
 
-    # Memory snapshot
-    snapshot_start_path = os.path.join(profiler_dir, "memory_snapshot_start.pickle")
-    snapshot_end_path = os.path.join(profiler_dir, "memory_snapshot_end.pickle")
-
-    if rank == 0:
-        torch.cuda.memory._record_memory_history(max_entries = 100000)
-        torch.cuda.memory._dump_snapshot(snapshot_start_path)
-        print(f"Memory snapshot (start) saved to {snapshot_start_path}")
-
     profiler = torch.profiler.profile(
         activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
         schedule=torch.profiler.schedule(wait=1, warmup=1, active=5, repeat=1),
@@ -138,10 +129,6 @@ def train(rank, world_size):
     # Synchronize at the very very end
     dist.barrier()
     torch.cuda.synchronize()
-
-    if rank == 0:
-        torch.cuda.memory._dump_snapshot(snapshot_end_path)
-        print(f"Memory snapshot (end) saved to {snapshot_end_path}")
 
     # Save profiler summary and trace only for rank 0
     if rank == 0:
