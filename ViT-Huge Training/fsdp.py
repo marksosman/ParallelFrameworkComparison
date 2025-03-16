@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import timedelta
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -22,6 +23,10 @@ def train(rank, world_size):
     os.environ["NCCL_TIMEOUT"] = "600"
     os.environ["NCCL_IB_DISABLE"] = "1"
     os.environ["NCCL_P2P_DISABLE"] = "1"
+
+    # Initialize the distributed process group
+    dist.init_process_group(backend='nccl', timeout=timedelta(seconds=300))
+    torch.cuda.set_device(local_rank)
 
     # Global batch size, gradient accumulation steps, per-GPU batch size setup
     global_batch_size = 1800
