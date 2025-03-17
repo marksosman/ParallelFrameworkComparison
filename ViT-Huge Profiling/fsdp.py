@@ -17,12 +17,17 @@ def train(rank, world_size):
     # Get local rank from torchrun
     local_rank = int(os.environ["LOCAL_RANK"])
 
-    # NCCL boilerplate
+    # NCCL configs
+    # Blocking NCCL operations, will finish before anything continues
     os.environ["NCCL_BLOCKING_WAIT"] = "1"
+    # Async error handling, errors get handled "immediately"
     os.environ["NCCL_ASYNC_ERROR_HANDLING"] = "1"
-    os.environ["NCCL_TIMEOUT"] = "600"
-    os.environ["NCCL_IB_DISABLE"] = "1"
-    os.environ["NCCL_P2P_DISABLE"] = "1"
+    # Timeout, set larger with larger models
+    os.environ["NCCL_TIMEOUT"] = "900"
+    # Infiniband comms (instead of TCP/IP), set to 1 if no Infiniband on cluster
+    os.environ["NCCL_IB_DISABLE"] = "0"
+    # Direct GPU 2 GPU comms, set to 1 if only 1 node OR 0 no NVLink on cluster
+    os.environ["NCCL_P2P_DISABLE"] = "0"
 
     # Initialize the distributed process group
     dist.init_process_group(backend='nccl', timeout=timedelta(seconds=300))
