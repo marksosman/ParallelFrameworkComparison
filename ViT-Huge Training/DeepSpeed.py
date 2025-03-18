@@ -74,8 +74,8 @@ def train():
     ds_params = sum(p.numel() for p in model.parameters(recurse=True))
     ds_size_mb = sum(p.numel() * p.element_size() for p in model.parameters(recurse=True)) / 1e6
     if rank == 0:
-        print(f"Total Parameters: {ds_params:,}")
-        print(f"Model Size: {ds_size_mb:.2f} MB")
+        print(f"DeepSpeed: Total Parameters: {ds_params:,}")
+        print(f"DeepSpeed: Model Size: {ds_size_mb:.2f} MB")
 
 # Dataset prep (Food101)
     transform = transforms.Compose([

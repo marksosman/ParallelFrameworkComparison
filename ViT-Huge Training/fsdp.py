@@ -69,8 +69,8 @@ def train(rank, world_size):
     fsdp_params = sum(p.numel() for p in FSDP.get_param_group(model)["params"])
     fsdp_size_mb = sum(p.numel() * p.element_size() for p in FSDP.get_param_group(model)["params"]) / 1e6
     if rank == 0:
-        print(f"Total Parameters: {fsdp_params:,}")
-        print(f"Model Size: {fsdp_size_mb:.2f} MB")
+        print(f"FSDP: Total Parameters: {fsdp_params:,}")
+        print(f"FSDP: Model Size: {fsdp_size_mb:.2f} MB")
 
     # Dataset prep (Food101)
     transform = transforms.Compose([
