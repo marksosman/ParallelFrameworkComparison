@@ -39,6 +39,13 @@ def train():
     model = create_model("vit_huge_patch14_224_in21k", pretrained=False, num_classes=101)
     model = model.to(local_rank)
 
+    # Measure model size prior to sharding
+    total_params = sum(p.numel() for p in model.parameters())
+    total_size_mb = sum(p.numel() * p.element_size() for p in model.parameters()) / 1e6
+    if rank == 0:
+        print(f"Total Parameters: {total_params}")
+        print(f"Model Size: {total_size_mb:.2f} MB")
+
     # DeepSpeed config
     ds_config = {
         "train_micro_batch_size_per_gpu": micro_batch_size,
@@ -64,7 +71,13 @@ def train():
         model=model, model_parameters=model.parameters(), config=ds_config
     )
 
-    # Dataset prep (Food101)
+    ds_params = sum(p.numel() for p in model.parameters(recurse=True))
+    ds_size_mb = sum(p.numel() * p.element_size() for p in model.parameters(recurse=True)) / 1e6
+    if rank == 0:
+        print(f"Total Parameters: {ds_params:,}")
+        print(f"Model Size: {ds_size_mb:.2f} MB")
+
+# Dataset prep (Food101)
     transform = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -81,9 +94,17 @@ def train():
 
     # Print "metadata"
     if rank == 0:
+        # Training metadata
         print(f"Using {world_size} GPUs across nodes.")
         print(f"Global Batch Size: {global_batch_size}, Gradient Accum Steps: {grad_accum_steps}")
         print(f"Micro Batch Size per GPU: {micro_batch_size}")
+        # Memory metadata (in MB)
+        total_memory = torch.cuda.get_device_properties(local_rank).total_memory / 1e6
+        allocated = torch.cuda.memory_allocated(local_rank) / 1e6
+        reserved = torch.cuda.memory_reserved(local_rank) / 1e6
+        print(f"Total Memory: {total_memory:.2f} MB")
+        print( f"Allocated: {allocated:.2f} MB")
+        print(f"Reserved: {reserved:.2f} MB")
 
     # Training and timing setup
     num_epochs = 5
@@ -112,11 +133,23 @@ def train():
             iteration_time = iter_end - iter_start
 
             if rank == 0:
-                print(f"Epoch {epoch+1}, Iter {batch_idx}: {iteration_time:.5f} seconds")
+                allocated = torch.cuda.memory_allocated(local_rank) / 1e6
+                reserved = torch.cuda.memory_reserved(local_rank) / 1e6
+                print(f"Epoch {epoch+1}, Iter {batch_idx}: {iteration_time:.5f} seconds, Allocated {allocated: 2f} MB, Reserved {reserved: 2f} MB")
+
+        if rank == 0:
+            allocated = torch.cuda.memory_allocated(local_rank) / 1e6
+            reserved = torch.cuda.memory_reserved(local_rank) / 1e6
+            print(f"Epoch {epoch+1} memory summary: Allocated: {allocated:.2f} MB, Reserved: {reserved:.2f} MB")
+
 
     torch.cuda.synchronize()
     if rank == 0:
+        allocated = torch.cuda.memory_allocated(local_rank) / 1e6
+        reserved = torch.cuda.memory_reserved(local_rank) / 1e6
         print(f"Training completed in {time.time() - start_time:.2f} seconds")
+        print(f"Allocated memory: {allocated: .2f} MB, Reserved memory: {reserved: .2f}")
+        print(torch.cuda.memory_summary(local_rank))
 
     dist.destroy_process_group()
 
