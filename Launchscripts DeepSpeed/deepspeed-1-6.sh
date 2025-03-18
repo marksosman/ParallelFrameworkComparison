@@ -23,18 +23,18 @@ srun bash -c "cat <<EOT > \"accelerate_config_\"\$SLURM_JOB_ID\"_\$(hostname -s)
 compute_environment: LOCAL_MACHINE
 deepspeed_config:
   deepspeed_multinode_launcher: standard
-  gradient_accumulation_steps: 8
+  gradient_accumulation_steps: ${grad_accum_steps}
   steps_per_print: 100
   gradient_clipping: 1.0
   offload_optimizer_device: none
   offload_param_device: none
   zero3_init_flag: false
-  zero_stage: 2
+  zero_stage: 3
 distributed_type: DEEPSPEED
 dynamo_config:
   dynamo_backend: AOT_CUDAGRAPHS
 main_training_function: main
-mixed_precision: bf16
+mixed_precision: fp16  #
 machine_rank: '\$SLURM_NODEID'
 main_process_ip: '\$MASTER_ADDR'
 main_process_port: \$MASTER_PORT
