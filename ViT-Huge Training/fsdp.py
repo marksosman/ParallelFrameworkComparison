@@ -129,7 +129,8 @@ def train(rank, world_size):
                 # Convert images to half precision
                 images, labels = images.to(local_rank).half(), labels.to(local_rank)
                 outputs = model(images)
-                loss = criterion(outputs, labels) / grad_accum_steps
+                # Loss computation safety measure (FSDP specific)
+                loss = criterion(outputs, labels).float() / grad_accum_steps
                 loss.backward()
 
             optimizer.step()
