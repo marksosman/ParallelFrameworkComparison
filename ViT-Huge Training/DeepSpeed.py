@@ -125,7 +125,7 @@ def train():
             images, labels = images.to(local_rank).half(), labels.to(local_rank)
 
             optimizer.zero_grad()
-            loss = criterion(model(images), labels)
+            loss = criterion(model(images), labels).float()
             model.backward(loss)
             model.step()
 
