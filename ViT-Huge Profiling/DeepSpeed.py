@@ -113,7 +113,8 @@ def train():
             # Synchronize at start of iteration
             torch.cuda.synchronize()
 
-            images, labels = images.to(local_rank), labels.to(local_rank)
+            # Convert images to half precision
+            images, labels = images.to(local_rank).half(), labels.to(local_rank)
 
             optimizer.zero_grad()
             loss = criterion(model(images), labels)

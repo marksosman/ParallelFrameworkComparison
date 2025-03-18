@@ -126,7 +126,8 @@ def train(rank, world_size):
                     data_iter = iter(dataloader)
                     images, labels = next(data_iter)
 
-                images, labels = images.to(local_rank), labels.to(local_rank)
+                # Convert images to half precision
+                images, labels = images.to(local_rank).half(), labels.to(local_rank)
                 outputs = model(images)
                 loss = criterion(outputs, labels) / grad_accum_steps
                 loss.backward()
