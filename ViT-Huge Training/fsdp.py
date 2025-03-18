@@ -66,7 +66,7 @@ def train(rank, world_size):
     )
 
     # Measure model after sharding
-    fsdp_params = sum(p.numel() for p in FSDP.get_param_group(model)["params"])
+    fsdp_params = sum(p.numel() for p in model.parameters())
     fsdp_size_mb = sum(p.numel() * p.element_size() for p in FSDP.get_param_group(model)["params"]) / 1e6
     if rank == 0:
         print(f"FSDP: Total Parameters: {fsdp_params:,}")
