@@ -113,10 +113,11 @@ def train():
             # Synchronize at start of iteration
             torch.cuda.synchronize()
 
+            optimizer.zero_grad()
+
             # Convert images to half precision
             images, labels = images.to(local_rank).half(), labels.to(local_rank)
 
-            optimizer.zero_grad()
             loss = criterion(model(images), labels).float()
             model.backward(loss)
             model.step()

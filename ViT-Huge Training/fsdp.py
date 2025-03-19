@@ -30,7 +30,7 @@ def train(rank, world_size):
     os.environ["NCCL_P2P_DISABLE"] = "0"
 
     # Initialize the distributed process group
-    dist.init_process_group(backend='nccl', timeout=timedelta(seconds=300))
+    dist.init_process_group(backend='nccl', timeout=timedelta(seconds=600))
     torch.cuda.set_device(local_rank)
 
     # Global batch size, gradient accumulation steps, per-GPU batch size setup

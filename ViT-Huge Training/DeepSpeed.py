@@ -71,8 +71,8 @@ def train():
         model=model, model_parameters=model.parameters(), config=ds_config
     )
 
-    ds_params = sum(p.numel() for p in model.parameters(recurse=True))
-    ds_size_mb = sum(p.numel() * p.element_size() for p in model.parameters(recurse=True)) / 1e6
+    ds_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    ds_size_mb = sum(p.numel() * p.element_size() for p in model.parameters() if p.requires_grad) / 1e6
     if rank == 0:
         print(f"DeepSpeed: Total Parameters: {ds_params:,}")
         print(f"DeepSpeed: Model Size: {ds_size_mb:.2f} MB")
@@ -111,6 +111,8 @@ def train():
     torch.cuda.synchronize()
     start_time = time.time()
 
+    torch.cuda.empty_cache()
+
     # Training loop
     for epoch in range(num_epochs):
         sampler.set_epoch(epoch)
@@ -121,13 +123,16 @@ def train():
             torch.cuda.synchronize()
             iter_start = time.time()
 
+            optimizer.zero_grad()
+
             # Convert images to half precision
             images, labels = images.to(local_rank).half(), labels.to(local_rank)
 
-            optimizer.zero_grad()
             loss = criterion(model(images), labels).float()
             model.backward(loss)
             model.step()
+
+            torch.cuda.empty_cache()
 
             torch.cuda.synchronize()
             iter_end = time.time()
