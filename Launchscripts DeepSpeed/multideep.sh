@@ -74,5 +74,5 @@ srun bash -c "accelerate launch --config_file=accelerate_config_\"\$SLURM_JOB_ID
 EOT
 
     echo "Submitted DeepSpeed job with $NODES nodes (Port: $MASTER_PORT)!"
-    sleep 2  # Small delay to prevent overwhelming SLURM
+    sleep 600  # Small delay to prevent overwhelming SLURM
 done

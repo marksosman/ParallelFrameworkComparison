@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the range of nodes to use (adjust as needed)
-MIN_NODES=3
-MAX_NODES=6
+MIN_NODES=1
+MAX_NODES=5
 GPUS_PER_NODE=6  # Adjust based on your setup
 BASE_PORT=12000  # Starting base port for unique comms
 
