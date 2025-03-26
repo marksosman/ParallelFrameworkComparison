@@ -30,10 +30,9 @@ def train():
     # Direct GPU 2 GPU comms, set to 1 if only 1 node OR 0 no NVLink on cluster
     os.environ["NCCL_P2P_DISABLE"] = "0"
 
-    # Global batch size, gradient accumulation steps, per-GPU batch size setup
-    global_batch_size = 360
+    # Gradient accumulation steps, per-GPU batch size setup
     grad_accum_steps = 1
-    micro_batch_size = global_batch_size // (grad_accum_steps * world_size)
+    micro_batch_size = 4
 
     # Load ViT-Huge
     model = create_model("vit_large_patch16_224", pretrained=False, num_classes=101)
@@ -62,7 +61,7 @@ def train():
             "stage": 2
         },
         "fp16": {
-            "enabled": True
+            "enabled": False
         }
     }
 
@@ -96,7 +95,7 @@ def train():
     if rank == 0:
         # Training metadata
         print(f"Using {world_size} GPUs across nodes.")
-        print(f"Global Batch Size: {global_batch_size}, Gradient Accum Steps: {grad_accum_steps}")
+        print(f"Global Batch Size: {micro_batch_size*grad_accum_steps*world_size}, Gradient Accum Steps: {grad_accum_steps}")
         print(f"Micro Batch Size per GPU: {micro_batch_size}")
         # Memory metadata (in MB)
         total_memory = torch.cuda.get_device_properties(local_rank).total_memory / 1e6
@@ -107,46 +106,41 @@ def train():
         print(f"Reserved: {reserved:.2f} MB")
 
     # Training and timing setup
-    num_epochs = 5
+    num_iterations = 40
     torch.cuda.synchronize()
     start_time = time.time()
 
     torch.cuda.empty_cache()
 
-    # Training loop
-    for epoch in range(num_epochs):
-        sampler.set_epoch(epoch)
-        model.train()
+    model.train()
+    data_iter = iter(dataloader)
+    for iteration in range(num_iterations):
+        try:
+            images, labels = next(data_iter)
+        except StopIteration:
+            data_iter = iter(dataloader)
+            images, labels = next(data_iter)
 
-        # Epoch-internal iteration training/timing
-        for batch_idx, (images, labels) in enumerate(dataloader):
-            torch.cuda.synchronize()
-            iter_start = time.time()
+        torch.cuda.synchronize()
+        iter_start = time.time()
 
-            optimizer.zero_grad()
+        optimizer.zero_grad()
 
-            # Convert images to half precision
-            images, labels = images.to(local_rank).half(), labels.to(local_rank)
+        images, labels = images.to(local_rank), labels.to(local_rank)
 
-            loss = criterion(model(images), labels).float()
-            model.backward(loss)
-            model.step()
+        loss = criterion(model(images), labels)
+        model.backward(loss)
+        model.step()
 
-            torch.cuda.empty_cache()
-
-            torch.cuda.synchronize()
-            iter_end = time.time()
-            iteration_time = iter_end - iter_start
-
-            if rank == 0:
-                allocated = torch.cuda.memory_allocated(local_rank) / 1e6
-                reserved = torch.cuda.memory_reserved(local_rank) / 1e6
-                print(f"Epoch {epoch+1}, Iter {batch_idx}: {iteration_time:.5f} seconds, Allocated {allocated: 2f} MB, Reserved {reserved: 2f} MB")
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+        iter_end = time.time()
+        iteration_time = iter_end-iter_start
 
         if rank == 0:
             allocated = torch.cuda.memory_allocated(local_rank) / 1e6
             reserved = torch.cuda.memory_reserved(local_rank) / 1e6
-            print(f"Epoch {epoch+1} memory summary: Allocated: {allocated:.2f} MB, Reserved: {reserved:.2f} MB")
+            print(f"Iter {iteration+1}: {iteration_time:.5f} sec, Allocated {allocated: 2f} MB, Reserved {reserved: 2f} MB")
 
 
     torch.cuda.synchronize()
