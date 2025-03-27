@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=1               # CPU cores per task
 #SBATCH --mem=512G                      # Memory per node
 #SBATCH --time=10:00:00                 # Max time (hh:mm:ss)
-#SBATCH --output=DeepSpeed-1-6-%j.out   # Standard output log
-#SBATCH --error=DeepSpeed-1-6-%j.err    # Error log
+#SBATCH --output=DeepSpeed1-%j.out       # Standard output log
+#SBATCH --error=DeepSpeed1-%j.err        # Error log
 
 set -x
 
@@ -49,4 +49,4 @@ use_cpu: false
 EOT"
 
 # Run training with DeepSpeed
-srun bash -c "accelerate launch --config_file=accelerate_config_\"\$SLURM_JOB_ID\"_\$(hostname -s).yaml DeepSpeed.py"
+srun bash -c "accelerate launch --config_file=accelerate_config_\"\$SLURM_JOB_ID\"_\$(hostname -s).yaml DS-MBS16-Half-3-Profiler.py"
