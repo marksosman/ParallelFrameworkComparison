@@ -7,7 +7,7 @@ GPUS_PER_NODE=6  # Adjust based on your setup
 BASE_PORT=12000  # Starting base port for unique comms
 
 for NODES in $(seq $MIN_NODES $MAX_NODES); do
-    JOB_NAME="MBS4-Half-F_${NODES}nodes"
+    JOB_NAME="fsdp_${NODES}nodes"
     MASTER_PORT=$((BASE_PORT + (NODES * 10)))
 
     sbatch <<EOT
